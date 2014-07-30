@@ -1,0 +1,231 @@
+<h1 id="ethereum_nacl_native_client_development_part_1">Ethereum NACL (NAtive CLient) development, part 1.</h1>
+
+<p>Ethereum HTML/JS &amp; QML DApps are pretty powerful and let you create a DApp in only a couple of minutes, however, you don’t have to stop there. Both the <strong>ethereal</strong> and <strong>ethereum</strong> clients are written using the <a href="https://github.com/ethereum/eth-go">eth-go</a> package. It has been the intention that this package will be used for any NACL Decentralised Application Development using the go programming language. With this in mind I’ve tried to minimise the complexity of setting up an ethereum node. Setting up a node only requires a couple lines of code.</p>
+
+<p>Here’s an example which demonstrates using the <code>eth-go</code> package and setting up an ethereum node:</p>
+
+<pre class="go"><code class="go">
+// 1. We start by initialising ethereum&#39;s Config object.
+//      a. Configuration file
+//      b. Data directory for storing database objects
+//      c. Prefix
+ethutil.ReadConfig(&quot;~/.config/coin.ini&quot;, &quot;~/.coin&quot;, &quot;COIN&quot;)
+
+// 2. Create a logger
+//      a. Default log stream
+//      b. Log flags (see: go doc log)
+//      c. The amount of log you&#39;re interested in
+//          i.   SilenceLevel (0)
+//          ii.  ErrorLevel (1)
+//          iii. WarnLevel (2)
+//          iv.  InfoLevel (3)
+//          v.   DebugLevel (4)
+//          vi.  DebugDetail (5) Please note: This includes network traffic as well.
+lSys := ethlog.NewStdLogSystem(os.Stdout, log.LstdFlags, ethlog.LogLevel(LogLevel))
+
+// 3. Add the logger to the default log system (multiple loggers allowed)
+ethlog.AddLogSystem(lSys)
+
+// 4. Create a new database which will be used to store the block chain
+db, err ;= ethdb.NewLDBDatabase(&quot;my_database&quot;)
+if err != nil {
+    panic(err)
+}
+
+// 4. Create a key manager which will manage the private &amp; public keys.
+keyManager := ethcrypto.NewDBKeyManager(db)
+err = keyManager.Init(&quot;&quot;, 0, false)
+if err != nil {
+    panic(err)
+}
+
+// 5. Create a new client identity. Client identities are used to identify this particular node in the network
+//      a. Client name
+//      b. Client version
+//      c. Optional identifier
+clientIdentity := ethwire.NewSimpleClientIdentity(&quot;NACL Coin&quot;, &quot;0.1&quot;, &quot;&quot;)
+
+// 6. Create a new Ethereum manager. The manager will take care of peer handling and all incoming and outgoing traffic,
+//    block &amp; tx propagation and block processing.
+//      a. The database for storing the block chain
+//      b. Client identity
+//      c. Key manager
+//      d. Client capacity
+//          i.   CapPeerDiscTy - Peer discovery or peer forwarding
+//          ii.  CapTxTy - Transaction relaying
+//          iii. CapChainTy - Block chain relaying
+//          iv.  CapDefault - All of the above
+//      e. Boolean indicating whether you want to use UPnP or not
+ethereum, err := eth.New(db, clientIdentity, keyManager, eth.CapDefault, false)
+if err != nil {
+    panic(err)
+}
+
+// 7. Start up the node
+        a. Boolean indicating whether you want to use the peer server to find peers.
+ethereum.Start(true)
+
+// 8. Wait for ethereum to shut down. In most cases you&#39;d register an interrupt handler (outside of ethereum)
+//    and signal ethereum you want to shutdown using &quot;ethereum.Stop()&quot;
+ethereum.WaitForShutDown()
+
+// 9. Flush out remaining log messages
+ethlog.Flush()
+</code></pre>
+
+<p>As you can see in the example above it’s fairly easy to set up a full node. From here on out it’s only a matter of querying ethereum to retrieve the information you require.</p>
+
+<h2 id="the_state_of_ethereum">The State of Ethereum</h2>
+
+<p>Before we continue you need to understand how ethereum stores data and how it handles past and present data. Ethereum is always in a constant state of change. If data changes in the ethereum network, ethereum’s state has changed. State object (which together make up the state) are stored in a <a href="">modified patricia trie</a>. The state changes when an object is retrieved, changed and stored. Without going in to too much detail assume for now that changing data, changes the state of ethereum.</p>
+
+<p>Retrieving and storing data can be done through a simple <strong>key / value</strong> interface:</p>
+
+<pre class="go"><code class="go">
+// Get the state object
+stateObject := state.GetStateObject([]byte(&quot;key_of_the_object&quot;))
+// Change a key in the object&#39;s storage
+stateObject.SetStorage(k, v)
+// Update the state
+state.Update()
+</code></pre>
+
+<p>State objects (i.e., accounts &amp; contracts) are usually retrieved and stored by their address, therefor if you want to get information about an object you’d need to know the address of the object. If your account’s address was <code>e6716f9544a56c530d868e4bfbacb172315bdead</code> we could retrieve like this:</p>
+
+<pre class="go"><code class="go">
+const address = &quot;e6716f9544a56c530d868e4bfbacb172315bdead&quot;
+// Convert hex to byte slice
+addr := ethutil.Hex2Bytes(address)
+// Retrieve account
+account := state.GetStateObject(addr)
+fmt.Println(&quot;Balance:&quot;, account.Balance)
+</code></pre>
+
+<p>Each state object, and this is especially useful for contracts, have storage. Storage has it’s own state and can be changed through another <strong>key / value</strong> interface. Lets create a new object in our current state and set/get some values.</p>
+
+<pre class="go"><code class="go">
+// Create a new state object. State objects created through the state are automatically cached and tracked.
+stateObject := state.NewStateObject([]byte(&quot;my address&quot;))
+// Set the new value
+account.SetStorage(key, ethutil.NewValue(1))
+// Retrieve a value
+value := account.GetStorage(key)
+fmt.Println(value)
+</code></pre>
+
+<p>Iterating over a state object’s storage can be done using the <code>EachStorage</code> method. Note that values stored in a contract are encoded and have to manually decoded by calling the <code>Decode()</code> method.</p>
+
+<pre class="go"><code class="go">
+stateObject.EachStorage(func(key string, value *ethutil.Value) {
+    // Decode the value
+    value.Decode()
+    fmt.Println(value.Bytes())
+})
+</code></pre>
+
+<p>Ethereum’s is in a constant state of being cached. If an object is retrieved and changed or if a new object has been created on the state it doesn’t mean it’s automatically applied to the current state. This has a few reasons and the biggest being optimisations. Update the state simply by calling the <code>Update()</code> method. There’s one more caveat: once applied it’s not <strong>saved</strong>. In order to limit the amount of disk i/o, the <code>trie</code> doesn’t apply to database when it changes, it first commits all it changes to a local <code>map[string]string</code>. If you want to make your changes permanent you need to call the <code>Sync()</code> method on the state.</p>
+
+<pre class="go"><code class="go">
+// Change the balance on the account
+account.Balance = big.NewInt(1000)
+// Update the state
+state.Update()
+// Sync trie with the database
+state.Sync()
+</code></pre>
+
+<p>It’s also possible to create a snapshot of the current state to which you can revert to at any given time. This is handy for situations where you’re uncertain about a change. Ethereum uses this internally incase a VM throws up or an invalid transaction is being send.</p>
+
+<pre class="go"><code class="go">
+stateObject := state.GetStateObject(addr)
+// Creates a full copy of the state
+snapshot := state.Copy()
+// Change the balance on the account
+account.Balance = big.NewInt(1000)
+// Unhappy about the change we&#39;ve just made :-(
+state.Set(snapshot)
+</code></pre>
+
+<p>We’ve now covered the basics of setting up an ethereum stack. In the next instalment of NACL Development we’ll cover the basics of creating an Ethereum wallet which will cover basic simple sending of transactions and balance checks.</p>
+
+<h2 id="structure">Structure</h2>
+
+<p>What follows now is a brief summary of the sub-packages included in the eth-go package. Most of the packages are irrelevant for NACL development. They are listed here merely for informational purpose.</p>
+
+<h4 id="ethutil">ethutil</h4>
+
+<p>The <code>ethutil</code> package contains ethereum’s utility functions such as byte manipulation, big integer additions, serialisation and an additional dynamic <code>Value</code> object which can represent any native type (including structs) and has the ability to cast to the a requested types:</p>
+
+<pre class="go"><code class="go">
+a := NewValue(1)               // Value represents an integer
+fmt.Println(a.BigInt())        // Cast to big.Int and print it.
+// Mix ints and big ints
+b := NewValue(big.NewInt(10))  // Value represents a big.Int
+fmt.Println(a.Add(b))          // Prints out 11
+</code></pre>
+
+<h4 id="ethwire">ethwire</h4>
+
+<p>The <code>ethwire</code> package contains low level communication to the ethereum network.</p>
+
+<h4 id="ethdb">ethdb</h4>
+
+<p>The <code>ethdb</code> package contains two database backends which conform to the <code>ethutil.Db</code> interface.</p>
+
+<ol>
+<li>LevelDB</li>
+
+<li>MemoryDB</li>
+</ol>
+
+<h4 id="ethtrie">ethtrie</h4>
+
+<p>The <code>ethtrie</code> package contains ethereum’s <em>modified patricia trie</em> which is being used to store ethereum’s <code>state</code>. The trie is used to derive the current state root of the ethereum network.</p>
+
+<pre class="go"><code class="go">
+// &quot;db&quot; is one of the database in ethdb. Second argument is the root (empty for new tries)
+trie := ethtrie.NewTrie(db, &quot;&quot;)
+trie.Update(&quot;eth&quot;, &quot;blockchain&quot;)
+trie.Update(&quot;smart contract&quot;, &quot;mutan&quot;)
+</code></pre>
+
+<h4 id="ethstate">ethstate</h4>
+
+<p>The <code>ethstate</code> package contains ethereum’s state object. State objects are stored in the <code>ethtrie</code>. A state object is a contract with a certain state (storage).</p>
+
+<pre class="go"><code class="go">
+// &quot;trie&quot; is an object from the ethtrie package
+state := ethstate.NewState(trie)
+// Retrieve a state object
+stateObject := state.GetStateObject(objAddr)
+// XXX big.Int as key will change to bytes.
+stateObject.SetStorage(key, value)
+storage := stateObject.GetStorage(key)
+</code></pre>
+
+<h4 id="ethvm">ethvm</h4>
+
+<p>The <code>ethvm</code> package contains a Virtual Machine. The VM is used by ethereum to run and validate contracts. The VM can be used completely standalone from ethereum.</p>
+
+<pre class="go"><code class="go">
+// *env* is an interface that is required by the VM. Please see the code for it&#39;s implementation
+vm := ethvm.New(env)
+closure := ethvm.NewClosure(initiator, stateObject, code, big.NewInt(1000000), big.NewInt(0))
+closure.Call(vm, data)
+</code></pre>
+
+<h4 id="ethrpc">ethrpc</h4>
+
+<p>The <code>ethrpc</code> package contains RPC interfaces for setting up a RPC server between RPC and the outside world.</p>
+
+<h4 id="ethlog">ethlog</h4>
+
+<p>The <code>ethlog</code> package contains the general logger</p>
+
+<h4 id="ethcrypto">ethcrypto</h4>
+
+<p>The <code>ethcrypto</code> package contains ethereum’s key manager and crypto functions.</p>
+
+<h4 id="ethchain">ethchain</h4>
+
+<p>The <code>ethchain</code> contains the actual consensus engine that drives ethereum.</p>
