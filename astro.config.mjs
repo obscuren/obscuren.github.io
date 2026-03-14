@@ -1,7 +1,6 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://obscuren.github.io',
-  base: '/gg-personal-website',
+  site: 'https://jeff.lookingforteam.com',
   output: 'static',
 });
