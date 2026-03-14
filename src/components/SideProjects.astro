@@ -1,0 +1,86 @@
+---
+const base = import.meta.env.BASE_URL;
+const projects = [
+  {
+    name: 'qe',
+    url: 'https://github.com/obscuren/qe',
+    description: 'Fast, lightweight terminal editor with modal editing and built-in git.',
+    lang: 'C',
+  },
+  {
+    name: 'tinyvm',
+    url: 'https://github.com/obscuren/tinyvm',
+    description: 'Minimalistic virtual machine.',
+    lang: 'Go',
+  },
+];
+---
+
+<section id="side-projects" class="section">
+  <div class="container">
+    <div class="section__label">Side Projects</div>
+    <h2 class="section__heading">Things I tinker with.</h2>
+
+    <div class="side-projects__list stagger">
+      {projects.map(project => (
+        <a href={project.url} target="_blank" rel="noopener" class="side-project">
+          <div class="side-project__header">
+            <span class="side-project__name">{project.name}</span>
+            <span class="side-project__lang">{project.lang}</span>
+          </div>
+          <p class="side-project__description">{project.description}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .side-projects__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+  }
+
+  .side-project {
+    display: block;
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid var(--color-border-light);
+    transition: all var(--transition-fast);
+    flex: 1 1 280px;
+    max-width: 400px;
+  }
+
+  .side-project:hover {
+    border-color: var(--color-border);
+    background: var(--color-bg-alt);
+  }
+
+  .side-project__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+  }
+
+  .side-project__name {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: 500;
+  }
+
+  .side-project__lang {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+
+  .side-project__description {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+</style>
