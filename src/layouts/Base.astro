@@ -1,0 +1,61 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Jeff — Founder & CEO, Grid Games",
+  description = "Co-founder of Ethereum. Founder & CEO of Grid Games. Programmer. Builder."
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" data-theme="minimal">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <title>{title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body>
+  <slot />
+  <script>
+    // Theme switcher
+    const theme = localStorage.getItem('theme') || 'minimal';
+    document.documentElement.setAttribute('data-theme', theme);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggle = document.querySelector('.nav__theme-toggle');
+      if (toggle) {
+        const themes = ['minimal', 'terminal'];
+        toggle.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme') || 'minimal';
+          const next = themes[(themes.indexOf(current) + 1) % themes.length];
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+          toggle.textContent = next;
+        });
+        toggle.textContent = document.documentElement.getAttribute('data-theme') || 'minimal';
+      }
+
+      // Mobile nav toggle
+      const burger = document.querySelector('.nav__burger');
+      const links = document.querySelector('.nav__links');
+      if (burger && links) {
+        burger.addEventListener('click', () => {
+          links.classList.toggle('open');
+        });
+        links.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => links.classList.remove('open'));
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

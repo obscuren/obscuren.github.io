@@ -1,0 +1,38 @@
+---
+const projects = [
+  {
+    name: 'Grid Games',
+    url: 'https://grid-games.com',
+    description: 'Game studio co-founded with my brother Joe. Building games we want to play.',
+    role: 'Founder & CEO',
+  },
+  {
+    name: 'Ethereum',
+    url: 'https://ethereum.org',
+    description: 'The world computer. Co-founded the project that started a revolution in decentralized technology.',
+    role: 'Co-founder',
+  },
+];
+---
+
+<section id="projects" class="section">
+  <div class="container">
+    <div class="section__label">Projects</div>
+    <h2 class="section__heading">Things I've built.</h2>
+
+    <div class="projects__list stagger">
+      {projects.map((project, i) => (
+        <div class="project">
+          <span class="project__number">{String(i + 1).padStart(2, '0')}</span>
+          <div class="project__info">
+            <h3 class="project__name">
+              <a href={project.url} target="_blank" rel="noopener">{project.name}</a>
+            </h3>
+            <p class="project__description">{project.description}</p>
+          </div>
+          <span class="project__role">{project.role}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

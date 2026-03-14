@@ -1,0 +1,37 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map(post => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<Base title={`${post.data.title} — Jeff`}>
+  <Nav />
+  <main class="container">
+    <a href="/#blog" class="post__back">&larr; Back to all posts</a>
+    <article class="post">
+      <header class="post__header">
+        <time class="post__date">
+          {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </time>
+        <h1 class="post__title">{post.data.title}</h1>
+        <p class="post__meta">{post.data.tag}</p>
+      </header>
+      <div class="post__content">
+        <Content />
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Base>

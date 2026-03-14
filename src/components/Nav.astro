@@ -1,0 +1,26 @@
+---
+const links = [
+  { label: 'About', href: '#about' },
+  { label: 'Projects', href: '#projects' },
+  { label: 'Blog', href: '#blog' },
+];
+---
+
+<nav class="nav">
+  <div class="container nav__inner">
+    <a href="/" class="nav__logo">J.</a>
+
+    <div class="nav__links">
+      {links.map(link => (
+        <a href={link.href} class="nav__link">{link.label}</a>
+      ))}
+      <button class="nav__theme-toggle" aria-label="Switch theme">minimal</button>
+    </div>
+
+    <button class="nav__burger" aria-label="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
