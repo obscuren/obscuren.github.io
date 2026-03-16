@@ -7,6 +7,8 @@ tag: "Side Project"
 
 Sometimes I just need to build something for fun. No roadmap, no stakeholders, no sprint planning. Just me and the compiler. That's Astra.
 
+![Astra — talking to Tessa the Station Keeper](/images/astra.png)
+
 ## What is it?
 
 Astra is a sci-fi roguelike dungeon crawler written in C++ that runs directly in your terminal. ASCII graphics, procedural map generation, field-of-view, and a HUD that would feel at home in an 80s space sim. You play as a commander docked at a space station called The Heavens Above, orbiting Jupiter, on a journey to Sagittarius A*.
