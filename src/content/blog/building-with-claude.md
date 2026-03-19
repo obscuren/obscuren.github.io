@@ -35,6 +35,22 @@ The terminal renderer, the FOV system, the HUD layout, the dialog trees — all 
 
 It's not that different from working with another programmer, except this one never gets tired and has read every C++ reference manual ever written.
 
+## One evening
+
+To put this into perspective: here's everything I added to ASTRA in a single evening session.
+
+It started with a procedural spiral galaxy — a star chart you can zoom into across three levels. From there, a planetary system data model: stars, planets, moons with names, space stations — some active, some derelict. You can scan systems, track your position on the map, and warp between locations. All persistent.
+
+Then I moved to map generation. ASTRA already had space station interiors, but I wanted variety. So I added cave generators — asteroid tunnels carved with a drunkard's walk algorithm, cave biomes with their own color themes, water features, and floor variety. The map generation became polymorphic, so the game can drop you into a station, a cave, or whatever comes next without the game logic caring about the difference.
+
+After that, combat got an overhaul. Ranged weapons now have proper damage values, range limits, and reload mechanics. An item and equipment system went in alongside it, with an inventory UI built into the side panel.
+
+And then the polish: a boot sequence with a block-letter title splash, portal entry that feels intentional instead of accidental, and a dev mode for testing.
+
+A procedural galaxy. Planetary systems. Space stations. Cave generation. A combat overhaul. An item system. A boot sequence. All of that in one sitting. That's not a week's sprint — that's a Tuesday night.
+
+When implementation isn't the bottleneck, you stop thinking in sprints and start thinking in ideas.
+
 ## The honest bit
 
 This isn't magic. You still need to know what you want. You still need to understand the code well enough to guide the direction. Claude is a force multiplier, not a replacement for knowing what you're doing.
