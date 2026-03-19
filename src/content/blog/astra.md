@@ -1,17 +1,17 @@
 ---
-title: "Astra — A Sci-Fi Roguelike in the Terminal"
+title: "ASTRA — A Sci-Fi Roguelike in the Terminal"
 date: 2026-03-16
 excerpt: "I built a roguelike dungeon crawler that runs in your terminal. ASCII graphics, procedural maps, and a sci-fi setting. Written in C++ together with Claude."
 tag: "Side Project"
 ---
 
-Sometimes I just need to build something for fun. No roadmap, no stakeholders, no sprint planning. Just me and the compiler. That's Astra.
+Sometimes I just need to build something for fun. No roadmap, no stakeholders, no sprint planning. Just me and the compiler. That's ASTRA.
 
-![Astra — talking to Tessa the Station Keeper](/images/astra.png)
+![ASTRA — talking to Tessa the Station Keeper](/images/astra.png)
 
 ## What is it?
 
-Astra is a sci-fi roguelike dungeon crawler written in C++ that runs directly in your terminal. ASCII graphics, procedural map generation, field-of-view, and a HUD that would feel at home in an 80s space sim. You play as a commander docked at a space station called The Heavens Above, orbiting Jupiter, on a journey to Sagittarius A*.
+ASTRA is a sci-fi roguelike dungeon crawler written in C++ that runs directly in your terminal. ASCII graphics, procedural map generation, field-of-view, and a HUD that would feel at home in an 80s space sim. You play as a commander docked at a space station called The Heavens Above, orbiting Jupiter, on a journey to Sagittarius A*.
 
 This project went from zero to a playable demo in a couple of days.
 
@@ -31,12 +31,12 @@ There's also a dialog system — NPCs can talk to you, offer quests, give direct
 
 ## Why build this?
 
-I run a game studio. I spend my days thinking about game design, player systems, and what makes things fun. Astra is where I get to test ideas without any stakes. Want to try a new hunger mechanic? Throw it in. Curious about how FOV should feel in a space station? Build it and see.
+I run a game studio. I spend my days thinking about game design, player systems, and what makes things fun. ASTRA is where I get to test ideas without any stakes. Want to try a new hunger mechanic? Throw it in. Curious about how FOV should feel in a space station? Build it and see.
 
 It's also just a good time. There's a purity to building games in the terminal that takes me back to when I first started programming. Before engines, before frameworks — just output to a screen and see what happens.
 
 ## What's next
 
-Astra is a side project and will stay that way — something I hack on when the mood strikes. But there's plenty I want to add: combat, NPCs with real dialogue trees, an inventory system, ship mechanics, and procedural station layouts.
+ASTRA is a side project and will stay that way — something I hack on when the mood strikes. But there's plenty I want to add: combat, NPCs with real dialogue trees, an inventory system, ship mechanics, and procedural station layouts.
 
 The source is up on [GitHub](https://github.com/obscuren/astra) if you want to poke around or build it yourself.
