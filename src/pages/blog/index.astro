@@ -1,0 +1,117 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+---
+
+<Base title="Blog — Jeff">
+  <Nav />
+  <main class="container">
+    <div class="blog-archive">
+      <div class="section__label">Blog</div>
+      <h1 class="section__heading">All posts.</h1>
+
+      <div class="blog-archive__list">
+        {posts.map(post => (
+          <a href={`${base}blog/${post.id}`} class="blog-archive__item">
+            <time class="blog-archive__date">
+              {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+            </time>
+            <div class="blog-archive__content">
+              <h2 class="blog-archive__title">{post.data.title}</h2>
+              <p class="blog-archive__excerpt">{post.data.excerpt}</p>
+            </div>
+            <span class="blog-archive__tag">{post.data.tag}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .blog-archive {
+    padding-top: 8rem;
+    padding-bottom: var(--space-section);
+  }
+
+  .blog-archive__list {
+    margin-top: var(--space-xl);
+  }
+
+  .blog-archive__item {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: var(--space-lg);
+    align-items: baseline;
+    padding: var(--space-lg) 0;
+    border-bottom: 1px solid var(--color-border-light);
+    transition: all var(--transition-fast);
+  }
+
+  .blog-archive__item:first-child {
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .blog-archive__item:hover {
+    padding-left: var(--space-md);
+  }
+
+  .blog-archive__item:hover .blog-archive__title {
+    color: var(--color-accent);
+  }
+
+  .blog-archive__date {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .blog-archive__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .blog-archive__title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    line-height: 1.2;
+    transition: color var(--transition-fast);
+  }
+
+  .blog-archive__excerpt {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    max-width: 55ch;
+  }
+
+  .blog-archive__tag {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .blog-archive__item {
+      grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+    .blog-archive__tag {
+      order: -1;
+    }
+  }
+</style>
