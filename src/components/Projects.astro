@@ -3,36 +3,56 @@ const projects = [
   {
     name: 'Grid Games',
     url: 'https://grid-games.com',
-    description: 'Game studio co-founded with my brother Joe. Building games we want to play.',
+    description: 'Game studio I started with my brother Joey. We build the games we want to play — from first prototype in Unity, to a full rebuild in Unreal, to shipping on our own terms.',
     role: 'Founder & CEO',
+    period: '2018 — Present',
   },
   {
     name: 'Ethereum',
     url: 'https://ethereum.org',
-    description: 'Co-founded the decentralized platform. A previous chapter.',
+    description: 'Co-founded and built the first Go implementation of the protocol. Led engineering through the early years. A formative chapter — but games were always the goal.',
     role: 'Co-founder',
+    period: '2013 — 2017',
   },
 ];
+
+const url = Astro.url;
+const variant = url.searchParams.get('projects') || 'b';
 ---
 
 <section id="projects" class="section">
   <div class="container">
     <div class="section__label">Projects</div>
-    <h2 class="section__heading">Things I've built.</h2>
+    <h2 class="section__heading">What I've built.</h2>
 
-    <div class="projects__list stagger">
-      {projects.map((project, i) => (
-        <div class="project">
-          <span class="project__number">{String(i + 1).padStart(2, '0')}</span>
-          <div class="project__info">
-            <h3 class="project__name">
-              <a href={project.url} target="_blank" rel="noopener">{project.name}</a>
-            </h3>
-            <p class="project__description">{project.description}</p>
+    {variant === 'a' ? (
+      <div class="projects__list stagger">
+        {projects.map((project) => (
+          <div class="project">
+            <div class="project__info">
+              <div class="project__top">
+                <h3 class="project__name">
+                  <a href={project.url} target="_blank" rel="noopener">{project.name}</a>
+                </h3>
+                <span class="project__period">{project.period}</span>
+              </div>
+              <span class="project__role">{project.role}</span>
+              <p class="project__description">{project.description}</p>
+            </div>
           </div>
-          <span class="project__role">{project.role}</span>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    ) : (
+      <div class="projects__cards stagger">
+        {projects.map((project) => (
+          <a href={project.url} target="_blank" rel="noopener" class="project-card">
+            <span class="project-card__period">{project.period}</span>
+            <h3 class="project-card__name">{project.name}</h3>
+            <span class="project-card__role">{project.role}</span>
+            <p class="project-card__description">{project.description}</p>
+          </a>
+        ))}
+      </div>
+    )}
   </div>
 </section>
