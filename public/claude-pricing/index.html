@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude API · Review Board Cost Estimator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #161719;
+    --surface2: #1e2024;
+    --border: #2a2d33;
+    --border2: #363a42;
+    --text: #e8eaf0;
+    --text2: #8b909c;
+    --text3: #545a66;
+    --accent: #4f8ef7;
+    --accent2: #2563c9;
+    --green: #4caf7d;
+    --green2: #2d6e4e;
+    --purple: #9b87f5;
+    --purple2: #5c4db3;
+    --amber: #f0a840;
+    --red: #e05c5c;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 6px;
+    --radius2: 10px;
+  }
+
+  html { font-size: 14px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: -1px;
+  }
+  .header-title { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); }
+  .header-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .header-badge {
+    font-family: var(--mono); font-size: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 3px 9px;
+    border-radius: 20px;
+  }
+
+  /* Layout */
+  .main { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 73px); }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .section-head {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .control-group { margin-bottom: 22px; }
+  .control-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .control-label span {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent);
+    transition: transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .range-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .range-label { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 28px; }
+
+  /* Model selector */
+  .model-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+  .model-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .model-card:hover { border-color: var(--border2); }
+  .model-card.selected { border-color: var(--accent); background: rgba(79,142,247,0.06); }
+  .model-card-left { display: flex; align-items: center; gap: 10px; }
+  .model-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--border2);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .model-card.selected .model-dot { background: var(--accent); border-color: var(--accent); }
+  .model-name { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .model-pricing { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 1px; }
+  .model-badge {
+    font-family: var(--mono); font-size: 9px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .badge-green { background: rgba(76,175,125,0.15); color: var(--green); }
+  .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(155,135,245,0.15); color: var(--purple); }
+
+  /* Toggles */
+  .toggle-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+  .toggle-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .toggle-item.active { border-color: var(--green2); }
+  .toggle-switch {
+    width: 32px; height: 18px;
+    background: var(--border2);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-item.active .toggle-switch { background: var(--green); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle-item.active .toggle-switch::after { transform: translateX(14px); }
+  .toggle-text { font-family: var(--mono); font-size: 11px; }
+  .toggle-desc { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  /* Main content */
+  .content { padding: 28px 32px; overflow-y: auto; }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-card:first-child::before { opacity: 1; }
+  .stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); line-height: 1; }
+  .stat-range { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 5px; }
+
+  .savings-card .stat-value { color: var(--green); }
+  .savings-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .savings-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.4s ease; }
+
+  /* Chart section */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+  .chart-legend { display: flex; gap: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .chart-wrap { height: 260px; position: relative; }
+
+  /* Info box */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 16px 18px;
+  }
+  .info-title { font-family: var(--mono); font-size: 10px; color: var(--text2); font-weight: 500; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .info-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .info-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">C∕</div>
+    <div>
+      <div class="header-title">Claude API · Cost Estimator</div>
+      <div class="header-sub">Review Board automated reviews with follow-up rounds</div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- Sidebar: controls -->
+  <aside class="sidebar">
+
+    <div class="section-head">Volume</div>
+
+    <div class="control-group">
+      <div class="control-label">Reviews per month <span id="out-reviews">50</span></div>
+      <input type="range" id="reviews" min="5" max="100" value="50" step="1">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">Initial diff size <span id="out-diff">200 lines</span></div>
+      <input type="range" id="diffsize" min="50" max="500" value="200" step="10">
+    </div>
+
+    <div class="section-head" style="margin-top:8px;">Follow-up Rounds</div>
+
+    <div class="control-group">
+      <div class="control-label">Min rounds <span id="out-rmin">1</span></div>
+      <div class="range-row">
+        <span class="range-label">min</span>
+        <input type="range" id="rounds-min" min="0" max="15" value="1" step="1" style="flex:1;">
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">Max rounds <span id="out-rmax">8</span></div>
+      <div class="range-row">
+        <span class="range-label">max</span>
+        <input type="range" id="rounds-max" min="0" max="15" value="8" step="1" style="flex:1;">
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">Incremental diff size <span id="out-incr">30%</span></div>
+      <input type="range" id="incremental" min="10" max="80" value="30" step="5">
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;">% of initial diff per follow-up round</div>
+    </div>
+
+    <div class="section-head" style="margin-top:8px;">Model</div>
+
+    <div class="model-cards">
+      <div class="model-card" id="card-haiku" onclick="selectModel('haiku')">
+        <div class="model-card-left">
+          <div class="model-dot"></div>
+          <div>
+            <div class="model-name">Haiku 4.5</div>
+            <div class="model-pricing">$1.00 / $5.00 per MTok</div>
+          </div>
+        </div>
+        <span class="model-badge badge-green">Cheapest</span>
+      </div>
+      <div class="model-card selected" id="card-sonnet" onclick="selectModel('sonnet')">
+        <div class="model-card-left">
+          <div class="model-dot"></div>
+          <div>
+            <div class="model-name">Sonnet 4.6</div>
+            <div class="model-pricing">$3.00 / $15.00 per MTok</div>
+          </div>
+        </div>
+        <span class="model-badge badge-blue">Recommended</span>
+      </div>
+      <div class="model-card" id="card-opus" onclick="selectModel('opus')">
+        <div class="model-card-left">
+          <div class="model-dot"></div>
+          <div>
+            <div class="model-name">Opus 4.6 / 4.7</div>
+            <div class="model-pricing">$5.00 / $25.00 per MTok</div>
+          </div>
+        </div>
+        <span class="model-badge badge-purple">Best quality</span>
+      </div>
+    </div>
+
+    <div class="section-head" style="margin-top:8px;">Optimisations</div>
+
+    <div class="toggle-group">
+      <div class="toggle-item active" id="btn-batch" onclick="toggleOpt('batch')">
+        <div class="toggle-switch"></div>
+        <div>
+          <div class="toggle-text">Batch API</div>
+          <div class="toggle-desc">50% off — async, &lt;24h delivery</div>
+        </div>
+      </div>
+      <div class="toggle-item active" id="btn-cache" onclick="toggleOpt('cache')">
+        <div class="toggle-switch"></div>
+        <div>
+          <div class="toggle-text">Prompt caching</div>
+          <div class="toggle-desc">90% off system prompt tokens</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main: results -->
+  <main class="content">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Monthly cost (avg)</div>
+        <div class="stat-value" id="stat-monthly">—</div>
+        <div class="stat-range" id="stat-monthly-range"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Annual cost (avg)</div>
+        <div class="stat-value" id="stat-annual">—</div>
+        <div class="stat-range" id="stat-annual-range"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cost per review</div>
+        <div class="stat-value" id="stat-per">—</div>
+        <div class="stat-range" id="stat-per-range"></div>
+      </div>
+      <div class="stat-card savings-card">
+        <div class="stat-label">Savings vs list price</div>
+        <div class="stat-value" id="stat-savings">—</div>
+        <div class="savings-bar"><div class="savings-fill" id="savings-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title">Monthly cost by model — min / max rounds at current settings</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Min rounds</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4f8ef755"></div>Max rounds</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-title"><div class="info-dot" style="background:var(--amber)"></div>Token model assumptions</div>
+        <div class="info-body">
+          ~18 tokens/diff line (context lines, hunk markers, file headers) · 1,000-token system prompt (cached) + 300-token metadata per round (PR title, description, branch info) · Output: max(1,000, lines × 8) tokens initial review, 600 tokens per follow-up · History: 60% of prior round tokens carried forward.
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-title"><div class="info-dot" style="background:var(--green)"></div>Architecture tip</div>
+        <div class="info-body">
+          For reviews with many rounds, summarise earlier history rather than passing the full raw transcript each time. This keeps input tokens from compounding too aggressively on long-running reviews.
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-title"><div class="info-dot" style="background:var(--accent)"></div>Batch API</div>
+        <div class="info-body">
+          Reviews don't need instant turnaround — queuing each round async saves 50% with no quality tradeoff. Ideal for Review Board's push-triggered workflow.
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-title"><div class="info-dot" style="background:var(--purple)"></div>Prompt caching</div>
+        <div class="info-body">
+          Cache your review guidelines and code standards system prompt once. The 90% saving on cached input tokens compounds across every round of every review automatically.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const models = {
+  haiku:  { inputPrice: 1,  outputPrice: 5  },
+  sonnet: { inputPrice: 3,  outputPrice: 15 },
+  opus:   { inputPrice: 5,  outputPrice: 25 }
+};
+
+let selectedModel = 'sonnet';
+let opts = { batch: true, cache: true };
+
+const TOKENS_PER_LINE = 18;        // diff lines incl. context lines, hunk markers, file headers
+const SYSTEM_PROMPT_TOKENS = 1000; // review guidelines + coding standards + project context
+const METADATA_TOKENS = 300;       // PR title, description, branch info, Review Board metadata
+const OUTPUT_PER_REVIEW_LINE = 8;  // inline comments + explanations + suggestions
+const OUTPUT_MIN_INITIAL = 1000;   // floor for initial review output
+const OUTPUT_PER_FOLLOWUP = 600;   // follow-up responses are substantive
+const HISTORY_COMPRESSION = 0.6;
+
+function calcCost(modelKey, diffLines, rounds, incrementalPct, useBatch, useCache) {
+  const m = models[modelKey];
+  const incrLines = diffLines * (incrementalPct / 100);
+  let totalInput = 0, totalOutput = 0, historyTokens = 0;
+
+  for (let r = 0; r <= rounds; r++) {
+    const dLines = r === 0 ? diffLines : incrLines;
+    const diffTokens = dLines * TOKENS_PER_LINE;
+    const outTokens = r === 0 ? Math.max(OUTPUT_MIN_INITIAL, dLines * OUTPUT_PER_REVIEW_LINE) : OUTPUT_PER_FOLLOWUP;
+    const sysTokens = r === 0 ? SYSTEM_PROMPT_TOKENS + METADATA_TOKENS : METADATA_TOKENS;
+    totalInput += sysTokens + historyTokens + diffTokens;
+    totalOutput += outTokens;
+    historyTokens += Math.round((diffTokens + outTokens) * HISTORY_COMPRESSION);
+  }
+
+  let cost;
+  if (useCache) {
+    const cached = (SYSTEM_PROMPT_TOKENS / 1e6) * (m.inputPrice * 0.1);
+    const uncached = ((totalInput - SYSTEM_PROMPT_TOKENS) / 1e6) * m.inputPrice;
+    const output = (totalOutput / 1e6) * m.outputPrice;
+    cost = cached + uncached + output;
+  } else {
+    cost = (totalInput / 1e6) * m.inputPrice + (totalOutput / 1e6) * m.outputPrice;
+  }
+  return useBatch ? cost * 0.5 : cost;
+}
+
+function calcBase(modelKey, diffLines, rounds, incrementalPct) {
+  return calcCost(modelKey, diffLines, rounds, incrementalPct, false, false);
+}
+
+function fmt(v) {
+  if (v < 0.001) return '<$0.001';
+  if (v < 0.01)  return '$' + v.toFixed(4);
+  if (v < 1)     return '$' + v.toFixed(3);
+  return '$' + v.toFixed(2);
+}
+
+let chart;
+
+function update() {
+  const reviews = +document.getElementById('reviews').value;
+  let rMin = +document.getElementById('rounds-min').value;
+  let rMax = +document.getElementById('rounds-max').value;
+  if (rMin > rMax) { rMax = rMin; document.getElementById('rounds-max').value = rMax; }
+  const diff = +document.getElementById('diffsize').value;
+  const incr = +document.getElementById('incremental').value;
+
+  document.getElementById('out-reviews').textContent = reviews;
+  document.getElementById('out-rmin').textContent = rMin;
+  document.getElementById('out-rmax').textContent = rMax;
+  document.getElementById('out-diff').textContent = diff + ' lines';
+  document.getElementById('out-incr').textContent = incr + '%';
+
+  const cMinRev = calcCost(selectedModel, diff, rMin, incr, opts.batch, opts.cache);
+  const cMaxRev = calcCost(selectedModel, diff, rMax, incr, opts.batch, opts.cache);
+  const cAvgRev = (cMinRev + cMaxRev) / 2;
+  const mMin = cMinRev * reviews, mMax = cMaxRev * reviews, mAvg = cAvgRev * reviews;
+
+  const bMin = calcBase(selectedModel, diff, rMin, incr) * reviews;
+  const bMax = calcBase(selectedModel, diff, rMax, incr) * reviews;
+  const bAvg = (bMin + bMax) / 2;
+  const sav = bAvg > 0 ? Math.round(((bAvg - mAvg) / bAvg) * 100) : 0;
+
+  document.getElementById('stat-monthly').textContent = fmt(mAvg);
+  document.getElementById('stat-monthly-range').textContent = fmt(mMin) + ' – ' + fmt(mMax);
+  document.getElementById('stat-annual').textContent = fmt(mAvg * 12);
+  document.getElementById('stat-annual-range').textContent = fmt(mMin * 12) + ' – ' + fmt(mMax * 12);
+  document.getElementById('stat-per').textContent = fmt(cAvgRev);
+  document.getElementById('stat-per-range').textContent = fmt(cMinRev) + ' – ' + fmt(cMaxRev);
+  document.getElementById('stat-savings').textContent = sav + '%';
+  document.getElementById('savings-fill').style.width = sav + '%';
+
+  const keys = ['haiku', 'sonnet', 'opus'];
+  const palette = { haiku: '#4caf7d', sonnet: '#4f8ef7', opus: '#9b87f5' };
+  const selIdx = keys.indexOf(selectedModel);
+  const minCosts = keys.map(k => calcCost(k, diff, rMin, incr, opts.batch, opts.cache) * reviews);
+  const maxCosts = keys.map(k => calcCost(k, diff, rMax, incr, opts.batch, opts.cache) * reviews);
+  const bgs     = keys.map((k, i) => palette[k] + (i === selIdx ? 'ff' : '55'));
+  const bgsDim  = keys.map((k, i) => palette[k] + (i === selIdx ? '44' : '22'));
+
+  if (!chart) {
+    chart = new Chart(document.getElementById('costChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Haiku 4.5', 'Sonnet 4.6', 'Opus 4.6/4.7'],
+        datasets: [
+          { label: 'Min rounds', data: minCosts, backgroundColor: bgs, borderRadius: 4, borderSkipped: false },
+          { label: 'Max rounds', data: maxCosts, backgroundColor: bgsDim, borderRadius: 4, borderSkipped: false, borderWidth: 1, borderColor: bgs }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e2024',
+            borderColor: '#2a2d33',
+            borderWidth: 1,
+            titleColor: '#8b909c',
+            bodyColor: '#e8eaf0',
+            titleFont: { family: 'IBM Plex Mono', size: 10 },
+            bodyFont: { family: 'IBM Plex Mono', size: 12 },
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}/mo` }
+          }
+        },
+        scales: {
+          y: {
+            ticks: { callback: v => fmt(v), font: { family: 'IBM Plex Mono', size: 10 }, color: '#545a66' },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { color: 'transparent' }
+          },
+          x: {
+            ticks: { font: { family: 'IBM Plex Mono', size: 10 }, color: '#545a66' },
+            grid: { display: false },
+            border: { color: '#2a2d33' }
+          }
+        }
+      }
+    });
+  } else {
+    chart.data.datasets[0].data = minCosts;
+    chart.data.datasets[0].backgroundColor = bgs;
+    chart.data.datasets[1].data = maxCosts;
+    chart.data.datasets[1].backgroundColor = bgsDim;
+    chart.data.datasets[1].borderColor = bgs;
+    chart.update();
+  }
+}
+
+function selectModel(k) {
+  selectedModel = k;
+  ['haiku','sonnet','opus'].forEach(m => document.getElementById('card-'+m).classList.toggle('selected', m === k));
+  update();
+}
+
+function toggleOpt(k) {
+  opts[k] = !opts[k];
+  document.getElementById('btn-'+k).classList.toggle('active', opts[k]);
+  update();
+}
+
+['reviews','diffsize','rounds-min','rounds-max','incremental'].forEach(id =>
+  document.getElementById(id).addEventListener('input', update)
+);
+update();
+</script>
+</body>
+</html>
